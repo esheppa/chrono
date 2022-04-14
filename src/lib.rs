@@ -419,7 +419,7 @@
 #![deny(missing_docs)]
 #![deny(missing_debug_implementations)]
 #![warn(unreachable_pub)]
-#![deny(dead_code)]
+// #![deny(dead_code)]
 #![cfg_attr(not(any(feature = "std", test)), no_std)]
 
 #[cfg(feature = "oldtime")]

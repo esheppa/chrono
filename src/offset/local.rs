@@ -35,7 +35,7 @@ use inner::{local_tm_to_time, time_to_local_tm, utc_tm_to_time};
 mod tz_localtime {
     use super::*;
     use crate::{Datelike, Duration, NaiveTime};
-    use std::{env, path};
+    use std::{env, path, convert::TryInto};
     use tz::{error, timezone};
 
     const LOCALTIME_LOCATION: &str = "/etc/localtime";
@@ -48,6 +48,39 @@ mod tz_localtime {
 
         // create and return a FixedOffset which will be used to create the local time
         Ok(FixedOffset::east(local.ut_offset()))
+    }
+
+    fn offset_from_local2(
+        tz: &tz::TimeZone,
+        local: NaiveDateTime,
+    ) -> Result<(FixedOffset, Option<FixedOffset>), error::TzError> {
+        use crate::Timelike;
+
+        dbg!(local, local.nanosecond(), local.second());
+        let (nanos, secs) = if local.nanosecond() >= 1_000_000_000 {
+            (local.nanosecond() - 1_000_000_000, 60)
+        } else {
+            (local.nanosecond(), local.second().try_into().unwrap())
+        };
+        let list = tz::datetime::find_date_time(
+            local.year(), 
+            local.month().try_into().unwrap(), 
+            local.day().try_into().unwrap(), 
+            local.hour().try_into().unwrap(),
+            local.minute().try_into().unwrap(),
+            secs,
+            nanos,
+            tz.as_ref(),
+        )?;
+
+        if let Some(dt) = list.unique() {
+            Ok((FixedOffset::east(dt.local_time_type().ut_offset()), None))
+        } else {
+            let first = list.earliest().unwrap();
+            let second = list.latest().unwrap();
+            Ok((FixedOffset::east(first.local_time_type().ut_offset()), Some(FixedOffset::east(second.local_time_type().ut_offset()))))
+
+        }
     }
 
     fn offset_from_local(
@@ -278,7 +311,8 @@ mod tz_localtime {
 
     fn try_from_local(local: NaiveDateTime) -> Result<DateTime<Local>, error::TzError> {
         if let Ok(tz) = get_local_tz() {
-            let relevant_offset = offset_from_local(&tz, local)?;
+            // #TODO: this should use LocalResult properly instead of taking .0
+            let relevant_offset = offset_from_local2(&tz, local)?.0;
 
             let local = DateTime::<Local>::from_utc(local - relevant_offset, relevant_offset);
 
@@ -591,10 +625,10 @@ mod tests {
     use std::{path, process};
 
     #[cfg(unix)]
-    fn verify_against_date_command(path: path::PathBuf) {
+    fn verify_against_date_command(path: &'static str, year: i32, month: u32) {
         let output = process::Command::new(path)
             .arg("-d")
-            .arg("2021-03-05 22:05:01")
+            .arg(format!("{year}-{month:02}-05 22:05:01"))
             .arg("+%Y-%m-%d %H:%M:%S %:z")
             .output()
             .unwrap();
@@ -602,9 +636,9 @@ mod tests {
         let date_command_str = String::from_utf8(output.stdout).unwrap();
 
         let local =
-            Local.from_local_datetime(&NaiveDate::from_ymd(2021, 3, 5).and_hms(22, 5, 1)).unwrap();
+            Local.from_local_datetime(&NaiveDate::from_ymd(year, month, 5).and_hms(22, 5, 1)).unwrap();
 
-        assert_eq!(format!("{}\n", local), date_command_str)
+        assert_eq!(format!("{}\n", local), date_command_str);
     }
 
     #[test]
@@ -615,7 +649,11 @@ mod tests {
         // for date_path in ["/usr/bin/date", "/bin/date"] {
         for date_path in ["/usr/bin/date"] {
             if path::Path::new(date_path).exists() {
-                verify_against_date_command(date_path.into())
+                for year in 1975..=2075 {
+                    for month in 1..=12 {
+                        verify_against_date_command(date_path, year, month)
+                    }
+                }
             }
         }
         // date command not found, skipping
