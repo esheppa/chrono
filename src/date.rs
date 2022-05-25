@@ -512,3 +512,55 @@ where
         write!(f, "{}{}", self.naive_local(), self.offset)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::Date;
+
+    use crate::oldtime::Duration;
+    use crate::{FixedOffset, NaiveDate, Utc};
+
+    #[test]
+    fn test_date_add_assign() {
+        let naivedate = NaiveDate::from_ymd(2000, 1, 1);
+        let date = Date::<Utc>::from_utc(naivedate, Utc);
+        let mut date_add = date;
+
+        date_add += Duration::days(5);
+        assert_eq!(date_add, date + Duration::days(5));
+
+        let timezone = FixedOffset::east(60 * 60);
+        let date = date.with_timezone(&timezone);
+        let date_add = date_add.with_timezone(&timezone);
+
+        assert_eq!(date_add, date + Duration::days(5));
+
+        let timezone = FixedOffset::west(2 * 60 * 60);
+        let date = date.with_timezone(&timezone);
+        let date_add = date_add.with_timezone(&timezone);
+
+        assert_eq!(date_add, date + Duration::days(5));
+    }
+
+    #[test]
+    fn test_date_sub_assign() {
+        let naivedate = NaiveDate::from_ymd(2000, 1, 1);
+        let date = Date::<Utc>::from_utc(naivedate, Utc);
+        let mut date_sub = date;
+
+        date_sub -= Duration::days(5);
+        assert_eq!(date_sub, date - Duration::days(5));
+
+        let timezone = FixedOffset::east(60 * 60);
+        let date = date.with_timezone(&timezone);
+        let date_sub = date_sub.with_timezone(&timezone);
+
+        assert_eq!(date_sub, date - Duration::days(5));
+
+        let timezone = FixedOffset::west(2 * 60 * 60);
+        let date = date.with_timezone(&timezone);
+        let date_sub = date_sub.with_timezone(&timezone);
+
+        assert_eq!(date_sub, date - Duration::days(5));
+    }
+}
