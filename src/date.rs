@@ -469,7 +469,7 @@ impl<Tz: TimeZone> Add<OldDuration> for Date<Tz> {
 impl<Tz: TimeZone> AddAssign<OldDuration> for Date<Tz> {
     #[inline]
     fn add_assign(&mut self, rhs: OldDuration) {
-        self.date += rhs;
+        self.date = self.date.checked_add_signed(rhs).expect("`Date + Duration` overflowed");
     }
 }
 
@@ -485,7 +485,7 @@ impl<Tz: TimeZone> Sub<OldDuration> for Date<Tz> {
 impl<Tz: TimeZone> SubAssign<OldDuration> for Date<Tz> {
     #[inline]
     fn sub_assign(&mut self, rhs: OldDuration) {
-        self.date -= rhs;
+        self.date = self.date.checked_sub_signed(rhs).expect("`Date - Duration` overflowed");
     }
 }
 
@@ -518,7 +518,7 @@ mod tests {
     use super::Date;
 
     use crate::oldtime::Duration;
-    use crate::{FixedOffset, NaiveDate, Utc};
+    use crate::{FixedOffset, Local, NaiveDate, TimeZone, Utc};
 
     #[test]
     fn test_date_add_assign() {
@@ -539,6 +539,12 @@ mod tests {
         let date = date.with_timezone(&timezone);
         let date_add = date_add.with_timezone(&timezone);
 
+        assert_eq!(date_add, date + Duration::days(5));
+
+        let date = Local.from_utc_date(&naivedate);
+        let mut date_add = date;
+
+        date_add += Duration::days(5);
         assert_eq!(date_add, date + Duration::days(5));
     }
 
@@ -561,6 +567,12 @@ mod tests {
         let date = date.with_timezone(&timezone);
         let date_sub = date_sub.with_timezone(&timezone);
 
+        assert_eq!(date_sub, date - Duration::days(5));
+
+        let date = Local.from_utc_date(&naivedate);
+        let mut date_sub = date;
+
+        date_sub -= Duration::days(5);
         assert_eq!(date_sub, date - Duration::days(5));
     }
 }
