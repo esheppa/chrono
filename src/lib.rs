@@ -48,7 +48,7 @@
 //!
 //! ### Duration
 //!
-//! Chrono currently uses its own [`TimeDelta`] type to represent the magnitude
+//! Chrono currently uses its own [`OldTimeDelta`] type to represent the magnitude
 //! of a time span. Note that this is an "accurate" duration represented as seconds and
 //! nanoseconds and does not represent "nominal" components such as days or
 //! months.
@@ -57,7 +57,7 @@
 //! the standard [`Duration`](https://doc.rust-lang.org/std/time/struct.Duration.html) type,
 //! but it will be supported in the future.
 //! Meanwhile you can convert between two types with
-//! [`TimeDelta::from_std`] and [`TimeDelta::to_std`] methods.
+//! [`OldTimeDelta::from_std`] and [`OldTimeDelta::to_std`] methods.
 //!
 //! ### Date and Time
 //!
@@ -144,7 +144,7 @@
 //!
 //! ```rust
 //! use chrono::prelude::*;
-//! use chrono::TimeDelta;
+//! use chrono::OldTimeDelta;
 //!
 //! // assume this returned `2014-11-28T21:45:59.324310806+09:00`:
 //! let dt = FixedOffset::east(9*3600).ymd(2014, 11, 28).and_hms_nano(21, 45, 59, 324310806);
@@ -171,11 +171,11 @@
 //! // arithmetic operations
 //! let dt1 = Utc.ymd(2014, 11, 14).and_hms(8, 9, 10);
 //! let dt2 = Utc.ymd(2014, 11, 14).and_hms(10, 9, 8);
-//! assert_eq!(dt1.signed_duration_since(dt2), TimeDelta::seconds(-2 * 3600 + 2));
-//! assert_eq!(dt2.signed_duration_since(dt1), TimeDelta::seconds(2 * 3600 - 2));
-//! assert_eq!(Utc.ymd(1970, 1, 1).and_hms(0, 0, 0) + TimeDelta::seconds(1_000_000_000),
+//! assert_eq!(dt1.signed_duration_since(dt2), OldTimeDelta::seconds(-2 * 3600 + 2));
+//! assert_eq!(dt2.signed_duration_since(dt1), OldTimeDelta::seconds(2 * 3600 - 2));
+//! assert_eq!(Utc.ymd(1970, 1, 1).and_hms(0, 0, 0) + OldTimeDelta::seconds(1_000_000_000),
 //!            Utc.ymd(2001, 9, 9).and_hms(1, 46, 40));
-//! assert_eq!(Utc.ymd(1970, 1, 1).and_hms(0, 0, 0) - TimeDelta::seconds(1_000_000_000),
+//! assert_eq!(Utc.ymd(1970, 1, 1).and_hms(0, 0, 0) - OldTimeDelta::seconds(1_000_000_000),
 //!            Utc.ymd(1938, 4, 24).and_hms(22, 13, 20));
 //! ```
 //!
@@ -396,7 +396,7 @@
 use core::fmt;
 
 mod time_delta;
-pub use time_delta::TimeDelta;
+pub use time_delta::OldTimeDelta;
 
 #[cfg(feature = "__doctest")]
 #[cfg_attr(feature = "__doctest", cfg(doctest))]
